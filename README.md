@@ -18,7 +18,12 @@ when compiling, for example:
 	cc -x c++ -include /path/to/fake_host_cuda.h -c source.cu
 
 
-To use it with YouCompleteMe, set your vim filetype to `cuda.cpp` and
+Recent versions of clang (from 3.6.2 at least) support CUDA directly, so
+you can actually `-x cuda` instead of `-x c++`, and this will correctly
+process the CUDA kernel launch syntax.
+
+To use it with YouCompleteMe, set your vim filetype to `cuda.cpp`
+(hopefully future versions of YCM will make this unnecessary) and
 add `'-include', '/path/to/fake_host_cuda.h'` to the `'flags'` returned
 from a custom `.ycm_extra_conf.py`.
 
@@ -39,13 +44,14 @@ stdcxxinclude=[ ['-isystem', path.strip()] for path in
             shell=True).split("\n")[1:-2] ]
 
 allcxx = ['-x', 'c++'] + cppflags + cxxflags + [el for pair in stdcxxinclude for el in pair]
+allcuda = ['-x', 'cuda', 'include', '/path/to/fake-host-cuda.h'] + cppflags + cxxflags + [el for pair in stdcxxinclude for el in pair]
 allcc = ['-x', 'c'] + cppflags + cflags + [el for pair in stdcinclude for el in pair]
 
 def FlagsForFile( filename ):
     if filename.endswith(('.C', '.cpp', '.cc', '.H', '.hpp', '.hh')):
         return { 'flags' : allcxx, 'do_cache' : False }
     elif filename.endswith(('.cu', '.cuh')):
-        return { 'flags' : allcxx + ['-include', '/path/to/fake-host-cuda/fake_host_cuda.h'], 'do_cache' : False }
+        return { 'flags' : allcuda, 'do_cache' : False }
     else:
         return { 'flags' : allcc, 'do_cache' : False }
 ```
@@ -56,7 +62,8 @@ def FlagsForFile( filename ):
 * the header will disable warnings about unknown attributes;
 * some intrinsics will not be defined;
 * as far as I know there is no trivial way to make the host compiler
-  accept the bracketed launch grid syntax for CUDA kernels, so expect
-  all such invokations to produce an error (if anybody has suggestions
+  accept the bracketed launch grid syntax for CUDA kernels unless it has
+  built-in support for CUDA (e.g. recent clang versions), so expect all
+  such invokations to produce an error (if anybody has suggestions
   on how to work around this, please share).
 
